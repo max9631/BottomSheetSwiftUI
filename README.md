@@ -1,1 +1,3 @@
-# BottomSheetSwiftUI
+# BottomSheet
+
+A description of this package.
