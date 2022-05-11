@@ -7,27 +7,6 @@
 
 import SwiftUI
 
-class SheetModel: ObservableObject {
-    @Published var contentSize: CGSize = .zero
-    @Published var stack: [AnyView]
-    var offsets: [CGFloat?] = []
-    
-    init<ViewType: View>(initialOverlay: ViewType) {
-        stack = [AnyView(initialOverlay)]
-    }
-    
-    
-    func push<ViewType: View, Anchor: BottomSheetAnchor>(lastViewOffset: CGFloat, view: ViewType, initialAnchor: Anchor) {
-        stack.append(AnyView(view))
-        offsets.append(lastViewOffset)
-    }
-    
-    func pop() -> CGFloat? {
-        _ = stack.popLast()
-        return offsets.popLast() as? CGFloat
-    }
-}
-
 struct Sheet: View {
     @ObservedObject var model: SheetModel
     

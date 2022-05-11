@@ -1,8 +1,8 @@
 //
-//  BotomSheet.swift
-//  MeteoritesSwiftUI
+//  File.swift
+//  
 //
-//  Created by Adam Salih on 28.04.2021.
+//  Created by Adam Salih on 09.05.2022.
 //
 
 import SwiftUI
@@ -13,14 +13,14 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
     @Published public var shouldScroll: Bool = true
     @Published var offset: CGFloat = .zero
     var size: CGSize = .zero
-    
+
     var sheetModel: SheetModel
-    
+
     private var startOffset: CGFloat? = nil
     private var scrollDirectionUp: Bool? = nil
     private var cancellables: Set<AnyCancellable> = Set()
     private let animationDuration: Double = 0.4
-    
+
     init<ViewType: View>(overlay: ViewType) {
         sheetModel = .init(initialOverlay: overlay)
         $shouldScroll
@@ -34,17 +34,17 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
             .sink { [weak self] scroll in self?.shouldScroll = scroll  }
             .store(in: &cancellables)
     }
-    
+
     var gesture: some Gesture {
         DragGesture()
             .onChanged(slide(gesture:))
             .onEnded(endSlide(gesture:))
     }
-    
+
     public func slide(to anchor: Anchor) {
         self.setOffset(offset: anchor.offset)
     }
-    
+
     public func push<ViewType: View>(view: ViewType, initialAnchor: Anchor) {
         let offset = offset
         let animationDuration = animationDuration
@@ -57,7 +57,7 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
             }
         }
     }
-    
+
     public func pop() {
         guard !sheetModel.stack.isEmpty else {
             return
@@ -75,7 +75,7 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
             }
         }
     }
-    
+
     private func slide(gesture: DragGesture.Value) {
         guard let offset = startOffset else {
             self.startOffset = self.offset
@@ -84,13 +84,13 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
         scrollDirectionUp = offset + gesture.translation.height < self.offset
         self.offset = offset + gesture.translation.height
     }
-    
+
     private func endSlide(gesture: DragGesture.Value) {
         let projection = (startOffset ?? .zero) + gesture.predictedEndTranslation.height
         setOffset(offset: nearestOffset(for: projection))
         startOffset = nil
     }
-    
+
     private func constant(for offset: BottomSheetOffset) -> CGFloat {
         let bottomOffset: CGFloat = {
             let constant: CGFloat = {
@@ -112,7 +112,7 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
         }
         return sheetModel.contentSize.height - bottomOffset
     }
-    
+
     private func nearestOffset(for projection: CGFloat) -> BottomSheetOffset {
         let offsets = Array(Anchor.allCases)
         let nearestIndex = offsets
@@ -123,11 +123,11 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
             .min { $0.1 < $1.1 }?.0
         return nearestIndex != nil ? offsets[nearestIndex!].offset : .specific(offset: .zero)
     }
-    
+
     func setOffset(offset: BottomSheetOffset, animation: Animation? = .interactiveSpring()) {
         setOffset(constant: constant(for: offset), animation: animation)
     }
-    
+
     func setOffset(constant: CGFloat, animation: Animation? = .interactiveSpring()) {
         let closure = {
             self.offset = constant
@@ -140,37 +140,3 @@ public class BottomSheetModel<Anchor: BottomSheetAnchor>: ObservableObject {
     }
 }
 
-
-public struct BottomSheet<Anchor: BottomSheetAnchor, Master: View>: View {
-    public var master: Master
-    var sheet: Sheet!
-    
-    @ObservedObject private var model: BottomSheetModel<Anchor>
-    
-    public init<Overlay: View>(anchor: Anchor.Type, master: Master, overlay: Overlay) {
-        self.model = .init(overlay: overlay)
-        self.master = master
-        self.sheet = Sheet(model: model.sheetModel)
-    }
-    
-    public var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottomTrailing) {
-                master
-                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                    .environmentObject(model)
-                sheet
-                    .frame(width: geometry.size.width, alignment: .top)
-                    .offset(y: model.offset)
-                    .gesture(model.gesture)
-                    .environmentObject(model)
-            }
-            .background(
-                GeometryReader { geometry in
-                    Color.clear.preference(key: SheetSizePrefferenceKey.self, value: geometry.size)
-                }
-            )
-            .onPreferenceChange(SheetSizePrefferenceKey.self) { self.model.size = $0 }
-        }
-    }
-}
